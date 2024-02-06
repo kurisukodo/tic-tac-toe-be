@@ -10,7 +10,7 @@ import { StatisticsModule } from './statistics/statistics.module';
   imports: [
     ConfigModule.forRoot(),
     MongooseModule.forRoot(
-      process.env.SET_ENV === 'prod'
+      process.env.IS_PROD === 'true'
         ? `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.rcjjg8a.mongodb.net/tic-tac-toe?retryWrites=true&w=majority`
         : 'mongodb://localhost:27017/tic-tac-toe',
       { serverApi: { version: '1', strict: true, deprecationErrors: true } },
