@@ -5,6 +5,16 @@ import { StatisticsService } from 'src/statistics/statistics.service';
 import { CreateGameplayDto } from './dto/create-gameplay.dto';
 import { Gameplay } from './schemas/gameplay.schema';
 
+type Boards = {
+  [player: string]: Board;
+};
+
+type Board = string[][];
+
+type Moves = {
+  [player: string]: Move[];
+};
+
 type Move = {
   row: number;
   col: number;
@@ -15,27 +25,30 @@ export class GameplaysService {
   @Inject(StatisticsService)
   private readonly statisticsService: StatisticsService;
 
-  private board: string[][];
-  private moves: Move[];
+  private boards: Boards = {};
+  private moves: Moves = {};
   private difficulty: string;
+  private selectedPlayer: string;
 
   constructor(
     @InjectModel(Gameplay.name) private gameplayModel: Model<Gameplay>,
-  ) {
-    this.initializeBoard();
-  }
+  ) {}
 
   private initializeBoard(size: number = 3) {
-    this.board = Array.from({ length: size }, () => Array(size).fill(''));
-    this.moves = [];
+    this.boards[this.selectedPlayer] = Array.from({ length: size }, () =>
+      Array(size).fill(''),
+    );
+    this.moves[this.selectedPlayer] = [];
   }
 
   private isBoardFull(): boolean {
-    return this.board.every((row) => row.every((cell) => cell !== ''));
+    return this.boards[this.selectedPlayer].every((row) =>
+      row.every((cell) => cell !== ''),
+    );
   }
 
   private isMovevaluateuateid(row: number, col: number): boolean {
-    return this.board[row][col] === '';
+    return this.boards[this.selectedPlayer][row][col] === '';
   }
 
   private isNotEmpty(value: string) {
@@ -48,8 +61,8 @@ export class GameplaysService {
       !this.checkWinner() &&
       !this.isBoardFull()
     ) {
-      this.board[row][col] = type;
-      this.moves.push({ row, col });
+      this.boards[this.selectedPlayer][row][col] = type;
+      this.moves[this.selectedPlayer].push({ row, col });
     }
   }
 
@@ -100,12 +113,12 @@ export class GameplaysService {
     for (let i = 0; i < 3; i++) {
       for (let j = 0; j < 3; j++) {
         if (this.isMovevaluateuateid(i, j)) {
-          this.board[i][j] = 'o';
+          this.boards[this.selectedPlayer][i][j] = 'o';
           if (this.checkWinner() === 'o') {
-            this.board[i][j] = '';
+            this.boards[this.selectedPlayer][i][j] = '';
             return { row: i, col: j };
           }
-          this.board[i][j] = '';
+          this.boards[this.selectedPlayer][i][j] = '';
         }
       }
     }
@@ -133,10 +146,10 @@ export class GameplaysService {
 
       for (let i = 0; i < 3; i++) {
         for (let j = 0; j < 3; j++) {
-          if (this.board[i][j] === '') {
-            this.board[i][j] = 'o';
+          if (this.boards[this.selectedPlayer][i][j] === '') {
+            this.boards[this.selectedPlayer][i][j] = 'o';
             const evaluate = this.minimax(false).score;
-            this.board[i][j] = '';
+            this.boards[this.selectedPlayer][i][j] = '';
 
             if (evaluate > maxEval) {
               maxEval = evaluate;
@@ -153,10 +166,10 @@ export class GameplaysService {
 
       for (let i = 0; i < 3; i++) {
         for (let j = 0; j < 3; j++) {
-          if (this.board[i][j] === '') {
-            this.board[i][j] = 'x';
+          if (this.boards[this.selectedPlayer][i][j] === '') {
+            this.boards[this.selectedPlayer][i][j] = 'x';
             const evaluate = this.minimax(true).score;
-            this.board[i][j] = '';
+            this.boards[this.selectedPlayer][i][j] = '';
 
             if (evaluate < minEval) {
               minEval = evaluate;
@@ -171,40 +184,48 @@ export class GameplaysService {
   }
 
   private checkWinner(): string | null {
-    const size = this.board.length;
+    const size = this.boards[this.selectedPlayer].length;
 
     for (let i = 0; i < size; i++) {
-      const rowFirstValue = this.board[i][0];
-      const colFirstValue = this.board[0][i];
+      const rowFirstValue = this.boards[this.selectedPlayer][i][0];
+      const colFirstValue = this.boards[this.selectedPlayer][0][i];
 
       if (
         this.isNotEmpty(rowFirstValue) &&
-        this.board[i].every((cell) => cell === rowFirstValue)
+        this.boards[this.selectedPlayer][i].every(
+          (cell) => cell === rowFirstValue,
+        )
       ) {
         return rowFirstValue;
       }
 
       if (
         this.isNotEmpty(colFirstValue) &&
-        this.board.every((row) => row[i] === colFirstValue)
+        this.boards[this.selectedPlayer].every(
+          (row) => row[i] === colFirstValue,
+        )
       ) {
         return colFirstValue;
       }
     }
 
-    const diagonal1FirstValue = this.board[0][0];
-    const diagonal2FirstValue = this.board[0][size - 1];
+    const diagonal1FirstValue = this.boards[this.selectedPlayer][0][0];
+    const diagonal2FirstValue = this.boards[this.selectedPlayer][0][size - 1];
 
     if (
       this.isNotEmpty(diagonal1FirstValue) &&
-      this.board.every((row, i) => row[i] === diagonal1FirstValue)
+      this.boards[this.selectedPlayer].every(
+        (row, i) => row[i] === diagonal1FirstValue,
+      )
     ) {
       return diagonal1FirstValue;
     }
 
     if (
       this.isNotEmpty(diagonal2FirstValue) &&
-      this.board.every((row, i) => row[size - 1 - i] === diagonal2FirstValue)
+      this.boards[this.selectedPlayer].every(
+        (row, i) => row[size - 1 - i] === diagonal2FirstValue,
+      )
     ) {
       return diagonal2FirstValue;
     }
@@ -230,17 +251,25 @@ export class GameplaysService {
 
   create(createGameplayDto: CreateGameplayDto) {
     this.difficulty = createGameplayDto.difficulty;
+    this.selectedPlayer = createGameplayDto.email;
+
+    if (!this.boards[this.selectedPlayer]) {
+      this.initializeBoard();
+    }
+
     this.saveMove(createGameplayDto.row, createGameplayDto.col, 'x');
     this.makeComputerMove();
 
     const gameStatus = this.getGameStatus();
-    const { row: lastRow, col: lastCol } = [...this.moves].pop();
+    const { row: lastRow, col: lastCol } = [
+      ...this.moves[this.selectedPlayer],
+    ].pop();
 
     const data = {
       email: createGameplayDto.email,
       difficulty: createGameplayDto.difficulty,
       status: gameStatus,
-      moves: this.moves,
+      moves: this.moves[this.selectedPlayer],
     };
 
     this.gameplayModel
