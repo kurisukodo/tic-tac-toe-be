@@ -28,47 +28,50 @@ export class GameplaysService {
   private boards: Boards = {};
   private moves: Moves = {};
   private difficulty: string;
+  private selectedPlayer: string;
 
   constructor(
     @InjectModel(Gameplay.name) private gameplayModel: Model<Gameplay>,
   ) {}
 
-  private initializeBoard(player: string, size: number = 3) {
-    this.boards[player] = Array.from({ length: size }, () =>
+  private initializeBoard(size: number = 3) {
+    this.boards[this.selectedPlayer] = Array.from({ length: size }, () =>
       Array(size).fill(''),
     );
-    this.moves[player] = [];
+    this.moves[this.selectedPlayer] = [];
   }
 
-  private isBoardFull(player: string): boolean {
-    return this.boards[player].every((row) => row.every((cell) => cell !== ''));
+  private isBoardFull(): boolean {
+    return this.boards[this.selectedPlayer].every((row) =>
+      row.every((cell) => cell !== ''),
+    );
   }
 
-  private isMoveValid(row: number, col: number, player: string): boolean {
-    return this.boards[player][row][col] === '';
+  private isMovevaluateuateid(row: number, col: number): boolean {
+    return this.boards[this.selectedPlayer][row][col] === '';
   }
 
   private isNotEmpty(value: string) {
     return value !== '';
   }
 
-  private saveMove(row: number, col: number, type: string, player: string) {
+  private saveMove(row: number, col: number, type: string) {
     if (
-      this.isMoveValid(row, col, player) &&
-      !this.checkWinner(player) &&
-      !this.isBoardFull(player)
+      this.isMovevaluateuateid(row, col) &&
+      !this.checkWinner() &&
+      !this.isBoardFull()
     ) {
-      this.boards[player][row][col] = type;
-      this.moves[player].push({ row, col });
+      this.boards[this.selectedPlayer][row][col] = type;
+      this.moves[this.selectedPlayer].push({ row, col });
     }
   }
 
-  private isGameFinished(player: string): boolean {
-    return this.isBoardFull(player) || !!this.checkWinner(player);
+  private isGameFinished(): boolean {
+    return this.isBoardFull() || !!this.checkWinner();
   }
 
-  private makeComputerMove(player: string): boolean {
-    if (this.isGameFinished(player)) {
+  private makeComputerMove(): boolean {
+    if (this.isGameFinished()) {
       return false; // Game is already finished
     }
 
@@ -76,24 +79,24 @@ export class GameplaysService {
 
     switch (this.difficulty) {
       case 'medium':
-        move = this.getBlockMove(player);
+        move = this.getBlockMove();
         break;
       case 'hard':
-        move = this.minimax(true, player).move;
+        move = this.minimax(true).move;
         break;
       default:
-        move = this.getRandomMove(player);
+        move = this.getRandomMove();
     }
 
-    this.saveMove(move.row, move.col, 'o', player);
+    this.saveMove(move.row, move.col, 'o');
   }
 
-  private getRandomMove(player: string): Move | null {
+  private getRandomMove(): Move | null {
     const emptyCells: { row: number; col: number }[] = [];
 
     for (let i = 0; i < 3; i++) {
       for (let j = 0; j < 3; j++) {
-        if (this.isMoveValid(i, j, player)) {
+        if (this.isMovevaluateuateid(i, j)) {
           emptyCells.push({ row: i, col: j });
         }
       }
@@ -106,37 +109,34 @@ export class GameplaysService {
     return emptyCells[Math.floor(Math.random() * emptyCells.length)];
   }
 
-  private getBlockMove(player: string): Move {
+  private getBlockMove(): Move {
     for (let i = 0; i < 3; i++) {
       for (let j = 0; j < 3; j++) {
-        if (this.isMoveValid(i, j, player)) {
-          this.boards[player][i][j] = 'o';
-          if (this.checkWinner(player) === 'o') {
-            this.boards[player][i][j] = '';
+        if (this.isMovevaluateuateid(i, j)) {
+          this.boards[this.selectedPlayer][i][j] = 'o';
+          if (this.checkWinner() === 'o') {
+            this.boards[this.selectedPlayer][i][j] = '';
             return { row: i, col: j };
           }
-          this.boards[player][i][j] = '';
+          this.boards[this.selectedPlayer][i][j] = '';
         }
       }
     }
 
-    return this.getRandomMove(player)!;
+    return this.getRandomMove()!;
   }
 
-  private minimax(
-    maximizing: boolean,
-    player: string,
-  ): {
+  private minimax(maximizing: boolean): {
     score: number;
     move?: { row: number; col: number };
   } {
-    const winner = this.checkWinner(player);
+    const winner = this.checkWinner();
 
     if (winner === 'x') {
       return { score: -1 };
     } else if (winner === 'o') {
       return { score: 1 };
-    } else if (this.isBoardFull(player)) {
+    } else if (this.isBoardFull()) {
       return { score: 0 };
     }
 
@@ -146,10 +146,10 @@ export class GameplaysService {
 
       for (let i = 0; i < 3; i++) {
         for (let j = 0; j < 3; j++) {
-          if (this.boards[player][i][j] === '') {
-            this.boards[player][i][j] = 'o';
-            const evaluate = this.minimax(false, player).score;
-            this.boards[player][i][j] = '';
+          if (this.boards[this.selectedPlayer][i][j] === '') {
+            this.boards[this.selectedPlayer][i][j] = 'o';
+            const evaluate = this.minimax(false).score;
+            this.boards[this.selectedPlayer][i][j] = '';
 
             if (evaluate > maxEval) {
               maxEval = evaluate;
@@ -166,10 +166,10 @@ export class GameplaysService {
 
       for (let i = 0; i < 3; i++) {
         for (let j = 0; j < 3; j++) {
-          if (this.boards[player][i][j] === '') {
-            this.boards[player][i][j] = 'x';
-            const evaluate = this.minimax(true, player).score;
-            this.boards[player][i][j] = '';
+          if (this.boards[this.selectedPlayer][i][j] === '') {
+            this.boards[this.selectedPlayer][i][j] = 'x';
+            const evaluate = this.minimax(true).score;
+            this.boards[this.selectedPlayer][i][j] = '';
 
             if (evaluate < minEval) {
               minEval = evaluate;
@@ -183,41 +183,47 @@ export class GameplaysService {
     }
   }
 
-  private checkWinner(player: string): string | null {
-    const size = this.boards[player].length;
+  private checkWinner(): string | null {
+    const size = this.boards[this.selectedPlayer].length;
 
     for (let i = 0; i < size; i++) {
-      const rowFirstValue = this.boards[player][i][0];
-      const colFirstValue = this.boards[player][0][i];
+      const rowFirstValue = this.boards[this.selectedPlayer][i][0];
+      const colFirstValue = this.boards[this.selectedPlayer][0][i];
 
       if (
         this.isNotEmpty(rowFirstValue) &&
-        this.boards[player][i].every((cell) => cell === rowFirstValue)
+        this.boards[this.selectedPlayer][i].every(
+          (cell) => cell === rowFirstValue,
+        )
       ) {
         return rowFirstValue;
       }
 
       if (
         this.isNotEmpty(colFirstValue) &&
-        this.boards[player].every((row) => row[i] === colFirstValue)
+        this.boards[this.selectedPlayer].every(
+          (row) => row[i] === colFirstValue,
+        )
       ) {
         return colFirstValue;
       }
     }
 
-    const diagonal1FirstValue = this.boards[player][0][0];
-    const diagonal2FirstValue = this.boards[player][0][size - 1];
+    const diagonal1FirstValue = this.boards[this.selectedPlayer][0][0];
+    const diagonal2FirstValue = this.boards[this.selectedPlayer][0][size - 1];
 
     if (
       this.isNotEmpty(diagonal1FirstValue) &&
-      this.boards[player].every((row, i) => row[i] === diagonal1FirstValue)
+      this.boards[this.selectedPlayer].every(
+        (row, i) => row[i] === diagonal1FirstValue,
+      )
     ) {
       return diagonal1FirstValue;
     }
 
     if (
       this.isNotEmpty(diagonal2FirstValue) &&
-      this.boards[player].every(
+      this.boards[this.selectedPlayer].every(
         (row, i) => row[size - 1 - i] === diagonal2FirstValue,
       )
     ) {
@@ -227,18 +233,16 @@ export class GameplaysService {
     return null; // No winner yet
   }
 
-  private getGameStatus(player: string) {
-    const winner = this.checkWinner(player);
-
-    if (!winner && this.isBoardFull(player)) {
+  private getGameStatus() {
+    if (!this.checkWinner() && this.isBoardFull()) {
       return 'drawn';
     }
 
-    if (winner === 'x') {
+    if (this.checkWinner() === 'x') {
       return 'won';
     }
 
-    if (winner === 'o') {
+    if (this.checkWinner() === 'o') {
       return 'lost';
     }
 
@@ -246,25 +250,26 @@ export class GameplaysService {
   }
 
   create(createGameplayDto: CreateGameplayDto) {
-    const player = createGameplayDto.email;
-
     this.difficulty = createGameplayDto.difficulty;
+    this.selectedPlayer = createGameplayDto.email;
 
-    if (!this.boards[player]) {
-      this.initializeBoard(player);
+    if (!this.boards[this.selectedPlayer]) {
+      this.initializeBoard();
     }
 
-    this.saveMove(createGameplayDto.row, createGameplayDto.col, 'x', player);
-    this.makeComputerMove(player);
+    this.saveMove(createGameplayDto.row, createGameplayDto.col, 'x');
+    this.makeComputerMove();
 
-    const gameStatus = this.getGameStatus(player);
-    const { row: lastRow, col: lastCol } = [...this.moves[player]].pop();
+    const gameStatus = this.getGameStatus();
+    const { row: lastRow, col: lastCol } = [
+      ...this.moves[this.selectedPlayer],
+    ].pop();
 
     const data = {
       email: createGameplayDto.email,
       difficulty: createGameplayDto.difficulty,
       status: gameStatus,
-      moves: this.moves[player],
+      moves: this.moves[this.selectedPlayer],
     };
 
     this.gameplayModel
@@ -278,7 +283,7 @@ export class GameplaysService {
       .exec();
 
     if (gameStatus !== 'idle') {
-      const status = this.getGameStatus(player);
+      const status = this.getGameStatus();
 
       this.statisticsService.findOneAndUpdate({
         email: createGameplayDto.email,
@@ -287,7 +292,7 @@ export class GameplaysService {
         drawn: status === 'drawn' ? 1 : 0,
       });
 
-      this.initializeBoard(player);
+      this.initializeBoard();
     }
 
     return {
